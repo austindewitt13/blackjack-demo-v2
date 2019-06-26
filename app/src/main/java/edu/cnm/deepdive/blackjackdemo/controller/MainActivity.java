@@ -12,19 +12,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import edu.cnm.deepdive.blackjackdemo.R;
 import edu.cnm.deepdive.blackjackdemo.model.Card;
-import edu.cnm.deepdive.blackjackdemo.model.Hand;
 import edu.cnm.deepdive.blackjackdemo.view.HandAdapter;
 import edu.cnm.deepdive.blackjackdemo.viewmodel.MainViewModel;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-  private static final int DECKS_IN_SHOE = 6;
-
   private RecyclerView handView;
-  private HandAdapter handAdapter;
-  private int adapterSize;
   private MainViewModel model;
+  private FloatingActionButton fab;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
         model.shuffle();
         break;
       case R.id.deal_hand:
-        model.initHand();
+        model.deal();
         break;
       default:
         handled = super.onOptionsItemSelected(item);
@@ -64,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
   }
 
   private void setupFloatingActionButton() {
-    FloatingActionButton fab = findViewById(R.id.fab);
+    fab = findViewById(R.id.fab);
     fab.setOnClickListener((view) -> model.draw(1));
   }
 
@@ -79,33 +75,20 @@ public class MainActivity extends AppCompatActivity {
 
   private void setupViewModel() {
     model = ViewModelProviders.of(this).get(MainViewModel.class);
-    model.getDeck().observe(this, (deck) -> model.initHand());
-    model.getHand().observe(this, this :: setupHand);
-    model.getCards().observe(this, this :: updateCards);
-
-    Hand hand = model.getHand().getValue();
-    if (hand == null) {
-      model.initDeck(DECKS_IN_SHOE); //TODO Avoid doing this?
-    } else {
-      setupAdapter(hand);
-      adapterSize = hand.getCards().size();
-    }
+    model.getCards().observe(this, this::updateCards);
   }
 
-  private void setupHand (Hand hand) {
-    setupAdapter(hand);
-    model.draw(2);
-  }
 
-  private void setupAdapter(Hand hand) {
-    handAdapter = new HandAdapter(this, hand.getCards());
+
+  private void updateCards(List<Card> cards) {
+    HandAdapter handAdapter = new HandAdapter(this, cards);
     handView.setAdapter(handAdapter);
-    adapterSize = 0;
-  }
+      if (model.getHand().getValue().getScore() >= 21) {
+        fab.hide();
+      } else {
+        fab.show();
+      }
 
-  private void updateCards (List<Card> cards) {
-    handAdapter.notifyItemRangeInserted(adapterSize, cards.size() -adapterSize);
-    adapterSize = cards.size();
   }
 
 }
